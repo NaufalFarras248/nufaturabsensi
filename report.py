@@ -25,6 +25,14 @@ def _kolom_letter(i):
     return s
 
 
+def _autofilter(baris, kolom):
+    """Baris judul ikut bisa difilter + panah dropdown di Excel."""
+    if not baris or not kolom:
+        return ''
+    n_kolom = max(len(r) for r in baris)
+    return '<autoFilter ref="A1:%s%d"/>' % (_kolom_letter(n_kolom - 1), len(baris))
+
+
 def _sheet_xml(sheet):
     kolom = sheet.get('kolom') or []
     baris = sheet.get('baris') or []
@@ -42,15 +50,17 @@ def _sheet_xml(sheet):
         for c, val in enumerate(row):
             ref = '%s%d' % (_kolom_letter(c), r)
             if isinstance(val, (int, float)) and not isinstance(val, bool):
-                cells.append('<c r="%s" s="%d"><v>%s</v></c>' % (ref, 2 if r == 1 else 0, val))
+                # angka selalu style 2 (rata kanan, vertikal tengah)
+                cells.append('<c r="%s" s="2"><v>%s</v></c>' % (ref, val))
             else:
                 cells.append('<c r="%s" t="inlineStr" s="%d"><is><t xml:space="preserve">%s</t></is></c>'
                              % (ref, 1 if r == 1 else 0, _esc(val)))
-        rows.append('<row r="%d">%s</row>' % (r, ''.join(cells)))
+        tinggi = ' ht="24" customHeight="1"' if r == 1 else ''
+        rows.append('<row r="%d"%s>%s</row>' % (r, tinggi, ''.join(cells)))
     return ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
             '<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
             '<sheetViews><sheetView workbookViewId="0"><pane ySplit="1" topLeftCell="A2" activePane="bottomLeft" state="frozen"/></sheetView></sheetViews>'
-            '%s<sheetData>%s</sheetData></worksheet>' % (cols, ''.join(rows)))
+            '%s%s<sheetData>%s</sheetData></worksheet>' % (cols, _autofilter(baris, kolom), ''.join(rows)))
 
 
 def _styles_xml():
@@ -71,7 +81,7 @@ def _styles_xml():
             '<cellXfs count="3">'
             '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1"/>'
             '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>'
-            '<xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyBorder="1"/>'
+            '<xf numFmtId="0" fontId="2" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="right" vertical="center"/></xf>'
             '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>')
 
 
@@ -141,6 +151,10 @@ def _potong(s, maks, ukuran=8):
     return s[:n] + '…'
 
 
+def _angka(v):
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
 def write_pdf(path, judul, kolom, baris, lebar_kolom=None, landscape=True, subjudul=''):
     """Tabel laporan A4. kolom: [str], baris: [[...]], lebar_kolom: [float] dalam poin."""
     W, H = (841.89, 595.28) if landscape else (595.28, 841.89)
@@ -153,6 +167,12 @@ def write_pdf(path, judul, kolom, baris, lebar_kolom=None, landscape=True, subju
     lebar = lebar_kolom or [(W - 2 * margin) / n] * n
     skala = (W - 2 * margin) / total if total else 1
     lebar = [w * skala for w in lebar]
+
+    # kolom yang isinya angka -> rata kanan
+    rata_kanan = []
+    for i in range(n):
+        vals = [row[i] for row in baris if len(row) > i and str(row[i]).strip() != '']
+        rata_kanan.append(bool(vals) and all(_angka(v) for v in vals))
 
     halaman = [baris[i:i + max_baris_per_halaman] for i in range(0, len(baris), max_baris_per_halaman)] or [[]]
 
@@ -176,9 +196,16 @@ def write_pdf(path, judul, kolom, baris, lebar_kolom=None, landscape=True, subju
         c.append('0.902 0.925 0.945 rg 0 %.2f %d %.2f re f\n' % (y - 4, W, baris_tinggi))
         x = margin
         for i, k in enumerate(kolom):
-            c.append(teks(x + 3, y, _potong(k, lebar[i] - 6, ukuran), ukuran, 'F2'))
+            label = _potong(k, lebar[i] - 6, ukuran)
+            xt = x + 3
+            if rata_kanan[i]:
+                xt = x + lebar[i] - 3 - _lebar_teks(label, ukuran)
+            c.append(teks(xt, y, label, ukuran, 'F2'))
             x += lebar[i]
         y -= baris_tinggi
+        if not blok:
+            c.append(teks(margin + 3, y, 'Tidak ada data pada periode ini.', ukuran, 'F1', '0.42 0.47 0.53'))
+            y -= baris_tinggi
         for r, row in enumerate(blok):
             if r % 2 == 1:
                 c.append('0.965 0.973 0.980 rg 0 %.2f %d %.2f re f\n' % (y - 3, W, baris_tinggi))
@@ -187,7 +214,11 @@ def write_pdf(path, judul, kolom, baris, lebar_kolom=None, landscape=True, subju
                 s = val
                 if isinstance(val, float):
                     s = ('%.2f' % val).rstrip('0').rstrip('.')
-                c.append(teks(x + 3, y, _potong(s, lebar[i] - 6, ukuran), ukuran))
+                t = _potong(s, lebar[i] - 6, ukuran)
+                xt = x + 3
+                if rata_kanan[i]:
+                    xt = x + lebar[i] - 3 - _lebar_teks(t, ukuran)
+                c.append(teks(xt, y, t, ukuran))
                 x += lebar[i]
             c.append('0.80 0.84 0.88 RG 0.4 w %d %.2f m %d %.2f l S\n' % (margin, y - 4, W - margin, y - 4))
             y -= baris_tinggi
