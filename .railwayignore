@@ -1,0 +1,12 @@
+# Jangan upload data lokal / file gede ke Railway
+data/
+storage/
+_backup_rebrand/
+tools/
+__pycache__/
+*.log
+AKUN-*.txt
+URL-PUBLIK.txt
+*.xlsx
+*.pdf
+*.bak-navy

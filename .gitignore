@@ -1,0 +1,24 @@
+# ================= JANGAN DI-PUSH =================
+# data & kredensial lokal
+data/
+storage/
+_backup_rebrand/
+AKUN-*.txt
+URL-PUBLIK.txt
+
+# binary / tools (cloudflared.exe ~55MB)
+tools/
+
+# artefak
+__pycache__/
+*.pyc
+*.log
+*.xlsx
+*.pdf
+*.bak-navy
+
+# OS / editor
+Thumbs.db
+.DS_Store
+.vscode/
+.idea/

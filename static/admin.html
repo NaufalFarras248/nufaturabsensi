@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Admin — Nufatur Absensi</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="logo" id="logoBrand"><img src="/static/logo-mark.png" alt="Logo"></div>
+      <div><b id="namaInstansi">Nufatur Absensi</b><small>Panel Administrator</small></div>
+    </div>
+    <nav class="nav" id="nav"></nav>
+    <div class="foot">Waktu server<br><b id="jamServer" style="color:#e2e8f0">—</b></div>
+  </aside>
+  <div class="scrim" id="scrim"></div>
+
+  <div class="main">
+    <header class="topbar">
+      <button class="hamburger" id="hamburger" aria-label="Menu"></button>
+      <div>
+        <h2 id="pageTitle">Dashboard</h2>
+        <div class="sub" id="pageSub">Ringkasan aktivitas hari ini</div>
+      </div>
+      <div class="right">
+        <div class="clock" id="clock"></div>
+        <div class="who">
+          <span class="av" id="avatar">A</span>
+          <div><b id="whoName">—</b><small id="whoRole">admin</small></div>
+        </div>
+        <button class="btn ghost sm" id="btnLogout" title="Keluar"></button>
+      </div>
+    </header>
+    <main class="content" id="content">
+      <div class="card"><div class="body"><div class="empty">Memuat data…</div></div></div>
+    </main>
+  </div>
+</div>
+<div id="toasts"></div>
+<script src="/static/ui.js"></script>
+<script src="/static/admin.js"></script>
+</body>
+</html>
