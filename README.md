@@ -1,325 +1,278 @@
-# Nufatur Absensi — Sistem Absensi Karyawan & Task Management
+# Nufatur Absensi — Sistem Absensi Karyawan & Manajemen Jobdesk
 
-Aplikasi web **multi-user** (admin + karyawan) dengan login, hak akses berbasis role,
-absensi berfoto selfie dengan **jam dari server**, dan checklist jobdesk harian.
-Dibangun dengan **Python standard library + SQLite** — tanpa pip, tanpa node, tanpa internet.
+Aplikasi web **multi-user** (admin + karyawan) untuk absensi karyawan berfoto selfie
+dengan **jam dari server**, plus checklist jobdesk harian, laporan, dan export Excel/PDF.
+
+Dibangun dengan **Python standard library + SQLite** — tanpa `pip install`, tanpa Node.
 
 ```
-Folder : C:\Users\ASUS\Downloads\absensi-server
-Jalan  : klik dua kali  jalankan.bat   (atau: python server.py)
-Buka   : http://127.0.0.1:8080
+Folder  : D:\MAGANG NIHHHHHH\absensi-server
+Jalan   : klik dua kali jalankan.bat   (atau: python server.py)
+Buka    : http://127.0.0.1:8080
+Online  : https://nufaturabsensi-production.up.railway.app   (lihat bagian 7)
 ```
 
-**Brand & tampilan** — palet diambil langsung dari logo, file di `static/`:
+---
 
-| Aset | Isi |
+## 1. Fitur
+
+### Admin (11 menu di sidebar)
+
+| Menu | Isi |
 |---|---|
-| `static/logo.png` | lockup penuh (simbol + wordmark), halaman login |
-| `static/logo-mark.png` | simbol saja, header sidebar admin |
-| `static/logo-word.png` | wordmark saja, header halaman karyawan |
-| `static/favicon.png` | favicon ketiga halaman |
+| Dashboard | Total karyawan aktif, sudah absen, belum absen, terlambat, task selesai hari ini, tabel absensi harian, aktivitas terbaru |
+| **Data Karyawan** | CRUD karyawan + **buat akun login** + reset password + filter/pencarian |
+| Divisi & Kategori | CRUD divisi + daftar kategori jobdesk |
+| Jobdesk Management | CRUD jobdesk (judul, kategori, deskripsi, berlaku untuk divisi tertentu/semua divisi) |
+| Data Absensi | Filter tanggal/karyawan/divisi/status, jam masuk-pulang, durasi, telat, **thumbnail foto bukti** |
+| Laporan Task Harian | Rekap penyelesaian jobdesk per karyawan per tanggal + export Excel/PDF |
+| Laporan Kehadiran | Rekap kehadiran + kelengkapan bukti foto + export Excel/PDF + cetak |
+| Monitoring Aktivitas | Jejak 200 aktivitas terakhir (login, absen, checklist, CRUD, export) |
+| Pengaturan Jam Kerja | Jam masuk/pulang, toleransi telat, hari kerja, zona waktu, wajib foto, **nama instansi** |
+| Pengaturan Akun | Ganti username, reset password, aktif/nonaktifkan akun, lihat login terakhir |
+| Profil Saya | Ubah profil + ganti password sendiri |
+
+### Karyawan (4 menu, navigasi bawah — dioptimalkan untuk HP)
+
+| Menu | Isi |
+|---|---|
+| Absen | Kartu profil + jam berjalan, status hari ini, tombol **Absen Masuk** / **Absen Pulang** (wajib foto), ringkasan task, riwayat singkat |
+| Task Harian | Checklist jobdesk sesuai divisinya, progress %, waktu selesai tercatat otomatis |
+| Riwayat | Absensi 14 terakhir + riwayat task per tanggal |
+| Profil | Foto profil, nama, ganti password, logout |
+
+---
+
+## 2. Cara menjalankan
+
+**Cara cepat (Windows):** klik dua kali `jalankan.bat` — server hidup, browser terbuka sendiri.
+
+**Manual:**
+
+```bash
+cd D:\MAGANG NIHHHHHH\absensi-server
+python server.py                 # port 8080
+python server.py --port 9000     # ganti port
+python server.py --reset-db      # hapus database & buat ulang data contoh
+```
+
+Jendela server **harus tetap terbuka** selama aplikasi dipakai. Hentikan dengan `Ctrl + C`.
+
+**Akses dari HP (satu jaringan Wi-Fi):** jalankan `LIHAT-ALAMAT-HP.bat`, lalu buka
+`http://<IP-komputer>:8080` dari browser HP.
+
+> Catatan kamera: browser hanya memberi akses kamera langsung (`getUserMedia`) di alamat
+> **aman** — `http://127.0.0.1` atau `https://`. Kalau dibuka lewat IP LAN
+> (`http://192.168.x.x`) kamera langsung diblokir browser; aplikasi otomatis menawarkan
+> tombol **"Buka Kamera Perangkat"**. Foto tetap tersimpan dan absensi tetap sah.
+
+**Akses dari internet:** klik dua kali `DEPLOY-INTERNET.bat` — menyalakan server + tunnel
+Cloudflare, lalu mencetak alamat publik `https://...trycloudflare.com` dan menyimpannya ke
+`URL-PUBLIK.txt`. Alamat berubah setiap tunnel dijalankan ulang; syarat hidup: jendela
+**Server** + **Tunnel** harus tetap terbuka.
+
+---
+
+## 3. Login pertama & di mana password-nya
+
+Saat pertama dijalankan, aplikasi membuat akun contoh dan menulisnya ke file:
+
+```
+AKUN-AWAL.txt      (1 akun admin + 6 akun karyawan contoh)
+```
+
+Password dibuat **acak** dan hanya ada di file itu.
+
+> Kalau password sudah pernah diganti, isi `AKUN-AWAL.txt` **tidak berlaku lagi** —
+> yang berlaku adalah password yang terakhir diatur. Admin bisa mereset password
+> karyawan kapan saja (lihat 4.2); karyawan bisa ganti sendiri di **Profil**.
+
+---
+
+## 4. Panduan Admin
+
+### 4.1 Bikin akun karyawan — bisa lewat admin, ya
+
+Dua cara, dua-duanya dari menu **Data Karyawan**:
+
+**A. Sekalian saat menambah karyawan baru**
+1. Menu **Data Karyawan** → tombol **Tambah Karyawan**.
+2. Isi nama, NIK, jabatan, divisi, kontak, tanggal masuk, status.
+3. Biarkan centang **"Buatkan akun login untuk karyawan ini"** (default menyala).
+4. Simpan → muncul dialog berisi **username** + **password awal**.
+   **Catat sekarang — password ini tidak ditampilkan lagi.**
+5. Karyawan login di halaman depan, lalu sebaiknya ganti password sendiri.
+
+**B. Karyawan sudah ada, akunnya belum dibuat**
+1. Menu **Data Karyawan** → cari baris karyawannya.
+2. Klik tombol **Buat Akun** → dicatat username + password awalnya.
+
+Catatan:
+- Username dibuat otomatis dari nama (contoh: `budi`). Bisa diubah di
+  **Pengaturan Akun → Ubah**.
+- **NIK harus unik** antar karyawan.
+- Status **karyawan** (`aktif`/`nonaktif`) beda dengan status **akun**
+  (aktif/nonaktif). Karyawan nonaktif tidak muncul di daftar absensi harian.
+
+### 4.2 Reset password & kelola akun
+- **Pengaturan Akun**: ganti username, **Password** (reset), **Nonaktifkan/Aktifkan**,
+  lihat login terakhir.
+- **Data Karyawan** juga punya tombol **Password** per baris untuk reset cepat.
+- Password hasil reset selalu ditampilkan **sekali** — langsung catat.
+
+### 4.3 Atur jam kerja
+Menu **Pengaturan Jam Kerja**: jam masuk, jam pulang, toleransi telat (menit), hari kerja,
+zona waktu, wajib/tidak wajib foto, dan **nama instansi** (ini yang tampil di sidebar,
+header karyawan, dan judul halaman).
+
+### 4.4 Jobdesk & divisi
+- **Divisi & Kategori**: bikin divisi (mis. Keuangan, Operasional).
+- **Jobdesk Management**: bikin daftar pekerjaan; pilih berlaku untuk divisi tertentu
+  atau **semua divisi**. Jobdesk nonaktif tidak muncul di checklist harian.
+
+### 4.5 Lihat absensi & laporan
+- **Data Absensi**: filter per hari / rentang tanggal / karyawan / divisi / status.
+  Foto bukti berbentuk thumbnail — klik untuk memperbesar.
+- **Laporan Kehadiran / Laporan Task Harian**: rekap + tombol **Excel**, **PDF**, **Cetak**.
+- **Monitoring Aktivitas**: siapa melakukan apa (login, absen, checklist, CRUD, export).
+
+---
+
+## 5. Panduan Karyawan
+
+1. Login pakai username + password dari admin.
+2. Menu **Absen** → tekan **Absen Masuk** → kamera terbuka → foto selfie → simpan.
+3. Kerjakan jobdesk hari ini di menu **Task Harian** — centang tiap pekerjaan yang selesai
+   (waktu selesai tercatat otomatis).
+4. Selesai kerja → menu **Absen** → **Absen Pulang** (juga pakai foto).
+5. **Riwayat** untuk melihat absensi & task hari-hari sebelumnya.
+
+Aturan yang dijaga server:
+
+- **Jam absensi selalu dari server** — HP karyawan tidak bisa mengakali jam.
+- **Satu kali sehari:** absen masuk 2× ditolak; absen pulang tanpa absen masuk ditolak.
+- **Foto wajib.** Foto ditolak = absensi tidak tersimpan sama sekali.
+- **Terlambat** dihitung otomatis dari jam masuk kerja + toleransi.
+- Karyawan **hanya bisa melihat datanya sendiri**.
+
+---
+
+## 6. Tampilan di HP
+
+- **Halaman karyawan** dirancang mobile-first (navigasi bawah, tombol besar).
+- **Halaman admin** responsif: di layar ≤ 900px sidebar otomatis jadi **laci (drawer)**.
+  - Tombol **☰** di kiri atas untuk membuka menu.
+  - Ketuk area gelap di luar menu (atau pilih menu) untuk menutup.
+  - Tabel data bisa **digeser ke samping** (tidak terpotong).
+  - Di layar kecil (≤ 560px) teks nama/role kanan atas disembunyikan — tinggal avatar + keluar.
+
+---
+
+## 7. Deploy ke internet (Railway)
+
+Sudah pernah dipasang di Railway (URL contoh di atas). Ringkasnya:
+
+1. Repo GitHub: `NaufalFarras248/nufaturabsensi`.
+2. Build pakai **Dockerfile** (`python:3.12-slim`), **bukan Nixpacks** — Nixpacks salah
+   mendeteksi project ini sebagai situs statis (karena ada `static/index.html`) sehingga
+   menghasilkan image nginx tanpa `python` (gejala: error 502).
+3. Start command: `python server.py --host 0.0.0.0 --port $PORT` (sudah ada di `railway.json`).
+4. **WAJIB pasang Volume** di mount `/data` + env `ABSENSI_DATA_DIR=/data` dan
+   `ABSENSI_FOTO_DIR=/data/foto`. Tanpa volume, database + foto hilang setiap redeploy.
+
+---
+
+## 8. Data & backup
+
+```
+data/app.db            <- database SQLite (semua data)
+storage/foto/YYYY-MM/  <- foto absensi (JPEG/PNG)
+storage/foto/profil/   <- foto profil
+```
+
+**Backup:** salin `data/app.db` **dan** folder `storage/foto/` (keduanya berdampingan).
+Atau pakai export Excel/PDF dari menu laporan untuk arsip periodik.
+
+**Mulai dari nol:** `python server.py --reset-db` (database dihapus & dibuat ulang dengan
+data contoh).
+
+---
+
+## 9. Bila ada masalah
+
+| Masalah | Solusi |
+|---|---|
+| `python` tidak dikenali | Pakai `py server.py`, atau pasang Python dari python.org (centang "Add to PATH") |
+| Port 8080 dipakai program lain | `python server.py --port 9000` |
+| Kamera tidak muncul di HP | Buka lewat `https://` (hasil tunnel) atau pakai tombol "Buka Kamera Perangkat" |
+| Login gagal terus | Cek password terakhir yang diatur; admin reset lewat **Pengaturan Akun → Password** |
+| Karyawan bilang "jam salah" | Jam diambil dari server — betulkan jam komputer server |
+| Data hilang setelah deploy ulang | Volume belum dipasang (lihat bagian 7) |
+| Foto lama ingin diarsipkan | Salin `storage/foto/` + `data/app.db` |
+
+---
+
+## 10. Keamanan (ringkas)
+
+- Password: **PBKDF2-HMAC-SHA256, 200.000 iterasi**, salt acak per akun.
+- Sesi: token acak 32 byte, cookie **HttpOnly + SameSite=Strict**, umur 12 jam.
+- Setiap request tulis wajib header **`X-CSRF`** (token per sesi) — tanpa itu 403.
+- Otorisasi diperiksa **di server** tiap request; karyawan hanya bisa data miliknya.
+- Foto disajikan lewat `/api/photo/<id>` dengan pemeriksaan kepemilikan.
+- Rate limit login: 8 kali gagal dari satu IP → diblokir 5 menit.
+- Halaman `/admin/*` hanya untuk admin; karyawan yang mengetik URL admin dialihkan
+  (dan tercatat di Monitoring Aktivitas).
+
+---
+
+## 11. Struktur file & catatan teknis
+
+```
+absensi-server/
+  server.py            HTTP server, routing, autentikasi, otorisasi, seluruh API
+  db.py                skema SQLite, seed data contoh, query, aturan bisnis
+  report.py            penulis .xlsx dan .pdf (stdlib, tanpa dependensi)
+  test_api.py          uji end-to-end API
+  rotate_password.py   ganti semua password sekaligus (opsional)
+  jalankan.bat         launcher lokal (server + browser)
+  DEPLOY-INTERNET.bat  launcher tunnel Cloudflare
+  LIHAT-ALAMAT-HP.bat  tampilkan alamat IP LAN
+  Dockerfile           build image (Railway)
+  railway.json         konfigurasi deploy Railway
+  static/
+    index.html         halaman login
+    admin.html         kerangka panel admin      + admin.js
+    karyawan.html      kerangka panel karyawan   + karyawan.js
+    ui.js              modul bersama: API, modal, toast, kamera selfie, format
+    app.css            desain sistem (termasuk responsif HP)
+  data/app.db          database
+  storage/foto/        foto bukti absensi
+  AKUN-AWAL.txt        akun awal (dibuat otomatis saat pertama jalan)
+```
+
+**Brand & warna** (semua CSS variable di `static/app.css`, blok `:root`):
 
 | Warna | Hex | Dipakai di |
 |---|---|---|
 | Biru (wordmark) | `#1D7AB7` | tombol, link, tabel, nav aktif |
 | Hijau (ujung pita) | `#0AD470` | absen masuk, badge hadir, checklist |
 | Tosca (tengah pita) | `#17BAD9` | ikon daftar fitur, gradasi aksen |
-| Marine black (latar logo) | `#03121A` | sidebar admin, hero karyawan & login |
+| Marine black | `#03121A` | sidebar admin, hero karyawan & login |
 
-Semua warna didefinisikan sebagai CSS variable di `static/app.css` blok `:root`.
 Gradasi brand: `linear-gradient(120deg,#0AD470,#17BAD9,#1D7AB7)` (`--brand-grad`).
+Nama instansi yang tampil di UI diambil dari **Pengaturan Jam Kerja** dan disimpan di
+tabel `work_settings.nama_instansi`.
 
----
-
-## 1. Cara menjalankan
-
-**Cara cepat (Windows):** klik dua kali `jalankan.bat` — server hidup, browser terbuka sendiri.
-
-**Cara manual:**
-```bash
-cd C:\Users\ASUS\Downloads\absensi-server
-python server.py                # port 8080
-python server.py --port 9000    # ganti port
-python server.py --reset-db     # hapus database & buat ulang data contoh
-```
-Jendela server **harus tetap terbuka** selama aplikasi dipakai. Hentikan dengan `Ctrl + C`.
-
-**Akses dari HP (satu jaringan Wi-Fi):** server mencetak alamat LAN saat dijalankan,
-misal `http://192.168.1.10:8080`. Buka alamat itu dari browser HP.
-
-> Catatan kamera: browser hanya mengizinkan akses kamera langsung (`getUserMedia`) pada
-> alamat **aman** — `http://127.0.0.1` atau `https://`. Kalau diakses lewat IP LAN
-> (http://192.168.x.x) kamera langsung diblokir browser; aplikasi otomatis menawarkan
-> tombol **"Buka Kamera Perangkat"** yang memakai aplikasi kamera bawaan HP. Foto tetap
-> tersimpan dan absensi tetap sah.
-
-**Deploy ke internet (bisa dibuka dari mana saja, bukan cuma Wi-Fi):**
-
-```
-Klik dua kali : DEPLOY-INTERNET.bat
-```
-
-Skrip itu menyalakan `server.py` bila belum jalan, membuka tunnel Cloudflare,
-lalu mencetak **alamat publik https** dan menyimpannya ke `URL-PUBLIK.txt`.
-
-| Perlu tahu | Keterangan |
-|---|---|
-| Alamat publik | acak, contoh `https://xxx-yyy-zzz.trycloudflare.com` |
-| Ganti tiap | tunnel dijalankan ulang — selalu baca `URL-PUBLIK.txt` |
-| Syarat hidup | jendela **Server Absensi Karyawan** + **Tunnel Absensi** harus terbuka |
-| Bonus | https = alamat aman, jadi kamera HP langsung jalan di dalam halaman |
-| Mati saat | komputer dimatikan / sleep, atau salah satu jendela ditutup |
-| Komponen | `tools\cloudflared.exe` (Cloudflare Tunnel, tanpa akun) |
-
-> **Sebelum alamat publik dibagikan:** password default **wajib** diganti. Jalankan
-> `python rotate_password.py` — semua password lama mati, semua sesi diputus, dan
-> password baru ditulis ke `AKUN-BARU.txt` (tidak pernah muncul di layar). Untuk
-> mempersempit ke satu akun saja, ganti lewat *Profil Saya → Ganti Password*.
->
-> Semua endpoint `/api/*` menolak akses tanpa login (401). Batas percobaan login:
-> 8 kali gagal dari satu IP → diblokir 5 menit.
-
-Untuk alamat yang **tetap** (tidak berubah tiap restart) dibutuhkan tunnel bernama
-dengan akun Cloudflare + domain sendiri; itu tidak bisa dilakukan tanpa akun.
-
----
-
-## 2. Akun awal
-
-Saat pertama dijalankan, aplikasi membuat akun contoh dan menulisnya ke file:
-
-```
-C:\Users\ASUS\Downloads\absensi-server\AKUN-AWAL.txt
-```
-
-Isinya: 1 akun **admin** + 6 akun **karyawan** (username `andi`, `budi`, `citra`, `dedi`,
-`eka`, `fajar`). Password dibuat acak dan **hanya ada di file itu**.
-
-> **Status sekarang: password sudah dirotasi.** Semua password di `AKUN-AWAL.txt` **mati**.
-> Password yang berlaku ada di `AKUN-BARU.txt` (8 akun), dibuat oleh `python rotate_password.py`.
-> Jalankan skrip itu lagi kapan saja untuk mengganti semua password sekaligus.
-
-Ganti password satu akun lewat menu *Profil Saya → Ganti Password*, atau sebagai admin
-lewat *Pengaturan Akun*.
-
-Admin dapat membuat akun karyawan baru kapan saja di menu **Data Karyawan → Tambah Karyawan**
-(centang "Buatkan akun login"), dan password baru selalu ditampilkan sekali untuk dicatat.
-
----
-
-## 3. Sistem 2 role (RBAC) & struktur URL
-
-Aplikasi hanya punya **dua role**: `admin` dan `karyawan`. Role tersimpan di kolom
-`users.role` (CHECK constraint di database) dan ditentukan **oleh server** pada setiap request
-— bukan dari tampilan.
-
-| URL | Siapa yang boleh | Keterangan |
-|---|---|---|
-| `/` | semua | belum login -> halaman login; sudah login -> dialihkan ke dashboard role-nya |
-| `/admin/dashboard` | admin | dashboard admin |
-| `/admin/<menu>` | admin | menu: dashboard, karyawan, divisi, jobdesk, absensi, lap-task, lap-hadir, monitor, set-jam, akun, profil |
-| `/employee/dashboard` | karyawan | dashboard karyawan (absen, jam berjalan, task hari ini) |
-| `/employee/<menu>` | karyawan | menu: dashboard, task, riwayat, profil |
-
-Aturan pengalihan (semuanya diuji otomatis):
-
-- belum login membuka `/admin/*` atau `/employee/*` -> dialihkan ke `/?masuk=1`
-- **karyawan mengetik URL admin** -> dialihkan ke `/employee/dashboard`; HTML panel admin
-  tidak pernah dikirim ke browser karyawan
-- admin membuka URL karyawan -> dialihkan ke `/admin/dashboard`
-- menu tidak dikenal -> dialihkan ke dashboard role tersebut
-- jalur lama `/admin.html` dan `/karyawan.html` mengikuti aturan role yang sama
-
-Sidebar admin dan navigasi bawah karyawan **berbeda**, dan URL ikut berubah saat menu diklik
-(`/admin/absensi`, `/employee/task`, ...) sehingga tombol back/forward browser bekerja.
-
-### Matriks hak akses
-
-| Kemampuan | Admin | Karyawan |
-|---|---|---|
-| Dashboard | seluruh karyawan | hanya dirinya |
-| Tambah / edit / hapus / nonaktifkan karyawan | ya | tidak |
-| Atur username, email, dan password karyawan | ya | tidak |
-| Jobdesk: tambah / edit / hapus | ya | hanya melihat daftar jobdesk divisinya |
-| Lihat absensi + foto bukti karyawan lain | ya | tidak, hanya miliknya sendiri |
-| Lihat & koreksi checklist pekerjaan karyawan | ya (semua karyawan, tanggal bebas) | hanya miliknya, hanya hari ini |
-| Laporan + export Excel/PDF | ya | tidak |
-| Pengaturan jam kerja & pengaturan akun | ya | tidak |
-| Absen masuk / pulang dengan foto | - | ya |
-| Ubah jam absensi manual | tidak bisa | tidak bisa |
-| Ubah role akun sendiri | lewat menu akun | **tidak bisa** (diabaikan server) |
-
-## 4. Fitur per role
-
-### Admin (sidebar, 11 menu)
-
-| Menu | Isi |
-|---|---|
-| Dashboard | Total karyawan aktif, sudah absen masuk, belum absen, terlambat, sudah absen pulang, total task selesai hari ini, tabel absensi harian, aktivitas terbaru |
-| Data Karyawan | CRUD karyawan (nama, NIK, jabatan, divisi, kontak, tgl masuk, status), buat akun login, reset password, filter divisi/status + pencarian |
-| Divisi & Kategori | CRUD divisi + daftar kategori jobdesk yang dipakai |
-| Jobdesk Management | CRUD jobdesk: judul, kategori, deskripsi, berlaku untuk divisi tertentu atau semua divisi, aktif/nonaktif |
-| Data Absensi | Filter per hari / rentang tanggal / karyawan / divisi / status, jam masuk-pulang, durasi, menit terlambat, status, **thumbnail foto bukti**, detail lengkap |
-| Laporan Task Harian | Rekap penyelesaian jobdesk per karyawan per tanggal + daftar pekerjaan yang diselesaikan + export Excel/PDF |
-| Laporan Kehadiran | Rekap jam masuk/pulang, durasi, keterlambatan, bukti foto lengkap atau tidak, persen task + export Excel/PDF + cetak |
-| Monitoring Aktivitas | Jejak 200 aktivitas terakhir (login, absen, checklist, CRUD, export) |
-| Pengaturan Jam Kerja | Jam masuk, jam pulang, toleransi keterlambatan, hari kerja, zona waktu, wajib/tidak wajib foto selfie, nama instansi |
-| Pengaturan Akun | Ganti username, reset password, aktif/nonaktifkan akun, lihat login terakhir |
-| Profil Saya | Ubah profil + ganti password sendiri |
-
-### Karyawan (navigasi bawah, 4 menu)
-
-| Menu | Isi |
-|---|---|
-| Absen | Kartu profil + jam berjalan, status hari ini, tombol **Absen Masuk** dan **Absen Pulang** (wajib foto kamera), jam masuk/pulang/durasi, ringkasan task hari ini, riwayat singkat |
-| Task Harian | Daftar jobdesk sesuai divisinya, checklist per hari, progress persen, waktu selesai tercatat otomatis |
-| Riwayat | Riwayat absensi (14 terakhir) dan riwayat task per tanggal dengan filter rentang |
-| Profil | Foto profil (kamera/galeri), nama, ganti password, logout |
-
----
-
-## 5. Aturan bisnis yang dijalankan server
-
-- **Jam absensi = waktu server.** Klien tidak pernah mengirim jam; kalau mencoba mengirim,
-  diabaikan. Semua jam disimpan dalam `attendance.checkin_at` / `checkout_at` (WIB lokal server).
-- **Foto wajib.** Foto divalidasi **sebelum** data absensi ditulis: tipe (JPEG/PNG/WEBP),
-  magic bytes, ukuran 2 KB–6 MB. Foto ditolak = absensi tidak tersimpan sama sekali.
-- **Satu kali per hari.** Absen masuk dua kali → ditolak. Absen pulang dua kali → ditolak.
-  Absen pulang tanpa absen masuk → ditolak.
-- **Terlambat** dihitung otomatis: jam masuk server > jam masuk kerja + toleransi (default
-  10 menit). Contoh: masuk 08:15 dengan toleransi 10 menit → **Terlambat 5 menit**.
-- **Status tampilan:** Hadir · Terlambat · Belum Absen Pulang · Tidak Hadir.
-- **Durasi kerja** = jam pulang − jam masuk (dihitung dari epoch, aman untuk shift malam).
-- **Checklist task** hanya boleh diisi **hari ini** oleh pemiliknya, dan hanya jobdesk yang
-  berlaku untuk divisinya. Admin boleh mengoreksi tanggal lain bila perlu.
-- **Karyawan hanya melihat datanya sendiri.** Semua pembatasan diperiksa di server
-  (bukan hanya disembunyikan di tampilan).
-
----
-
-## 6. Database (SQLite)
-
-```
-data/app.db          <- database
-storage/foto/YYYY-MM/ <- file foto absensi (JPEG/PNG)
-storage/foto/profil/ <- foto profil
-```
-
-| Tabel | Isi | Relasi |
-|---|---|---|
-| `divisions` | divisi kerja | — |
-| `employees` | data karyawan | `division_id → divisions.id` |
-| `users` | akun login (admin & karyawan) | `employee_id → employees.id` |
-| `attendance` | absensi harian | `employee_id → employees.id`, unik per (karyawan, tanggal) |
-| `attendance_photos` | foto bukti absensi | `attendance_id → attendance.id` (jenis: checkin/checkout) |
-| `jobdesks` | daftar pekerjaan | `division_id → divisions.id` (NULL = semua divisi) |
-| `daily_tasks` | checklist harian | `employee_id`, `jobdesk_id` (unik per karyawan/jobdesk/tanggal) |
-| `work_settings` | jam kerja, toleransi, hari kerja | 1 baris (id = 1) |
-| `sessions` | sesi login (token + CSRF) | `user_id → users.id` |
-| `activity_log` | jejak aktivitas | `user_id → users.id` |
-
+**Database (SQLite)** — tabel: `divisions`, `employees`, `users`, `attendance`,
+`attendance_photos`, `jobdesks`, `daily_tasks`, `work_settings`, `sessions`, `activity_log`.
 Foreign key aktif, `ON DELETE CASCADE` untuk data anak, `journal_mode = WAL`.
 
-**Backup:** salin `data/app.db` **dan** folder `storage/foto/` (keduanya berdampingan).
-Atau lewat menu *Data Absensi/Laporan → Excel* untuk arsip laporan.
+**API singkat** (semua di bawah `/api/`): `login`, `logout`, `me`, `employees[/<id>]`,
+`employees/<id>/akun`, `divisions`, `jobdesks`, `attendance`, `attendance/masuk`,
+`attendance/pulang`, `tasks/toggle`, `dashboard/admin`, `dashboard/karyawan`,
+`reports/attendance`, `reports/tasks`, `export/xlsx`, `export/pdf`, `settings`, `log`,
+`profil`.
 
----
-
-## 7. Keamanan
-
-- Password: **PBKDF2-HMAC-SHA256, 200.000 iterasi**, salt acak per akun.
-- Sesi: token acak 32 byte di tabel `sessions`, cookie **HttpOnly + SameSite=Strict**, umur 12 jam.
-- **CSRF:** setiap request tulis (POST/PUT/DELETE) wajib menyertakan header `X-CSRF` yang cocok
-  dengan token sesi. Tanpa itu → 403.
-- **Otorisasi per endpoint** di server: `admin` vs `karyawan`; karyawan hanya bisa data sendiri.
-- Foto absensi disajikan lewat `/api/photo/<id>` yang memeriksa kepemilikan (admin semua,
-  karyawan hanya fotonya sendiri).
-- Rate limit login: 8 kali gagal dari satu IP → ditolak 5 menit.
-- Semua input divalidasi di server (panjang, format tanggal, format jam, angka, tipe).
-- **Pemisahan halaman per role di server**: `/admin/*` hanya untuk admin, `/employee/*` hanya
-  untuk karyawan; karyawan yang mengetik URL admin dicatat di Monitoring Aktivitas dan
-  langsung dialihkan tanpa pernah menerima halaman admin.
-
----
-
-## 8. API singkat
-
-```
-GET  /                     -> login / alihkan ke dashboard sesuai role
-GET  /admin/<menu>         -> panel admin (khusus admin)
-GET  /employee/<menu>      -> panel karyawan (khusus karyawan)
-
-POST /api/login                  {username,password}         -> {user, csrf}, set cookie
-POST /api/logout
-GET  /api/me                     -> user + csrf + pengaturan + jam server
-
-GET/POST/PUT/DELETE  /api/employees[/<id>]        (admin; karyawan hanya baca dirinya)
-POST /api/employees/<id>/akun                     (admin) -> username + password awal
-GET/POST/PUT/DELETE  /api/divisions, /api/jobdesks
-GET  /api/attendance?from&to&employee_id&division_id&status&q
-POST /api/attendance/masuk       {foto: dataURL}   -> jam dari server
-POST /api/attendance/pulang      {foto: dataURL}
-GET  /api/attendance/hari-ini
-GET  /api/photo/<id>                               -> file foto (dengan otorisasi)
-GET  /api/tasks?tanggal&employee_id
-POST /api/tasks/toggle           {jobdesk_id, tanggal, selesai}
-GET  /api/tasks/riwayat?from&to
-GET  /api/dashboard/admin?tanggal | /api/dashboard/karyawan
-GET  /api/reports/attendance | /api/reports/tasks  (filter from,to,division_id,employee_id,q)
-GET  /api/export/xlsx?jenis=kehadiran|task&...     -> .xlsx asli
-GET  /api/export/pdf?jenis=kehadiran|task&...      -> .pdf asli
-GET/PUT /api/settings  (PUT khusus admin)
-GET  /api/log?limit=200 (admin)   GET/PUT /api/profil   POST /api/profil/password
-```
-
----
-
-## 9. Pengujian otomatis
-
-```bash
-python server.py                        # terminal 1 (biarkan berjalan)
-python test_api.py                      # terminal 2
-```
-
-`test_api.py` menguji 74 hal: login salah/benar, CSRF, pembatasan role, foto wajib,
-foto palsu ditolak, foto gagal tidak menyisakan data, jam memakai waktu server,
-absen dua kali, absen pulang, checklist task + waktu selesai, jobdesk divisi lain
-ditolak, dashboard, laporan, export Excel/PDF (dicek magic bytes), pengaturan jam,
-ganti password, **pemisahan halaman admin/karyawan lewat URL** (karyawan mengetik
-`/admin/dashboard` ditolak, role tidak bisa dinaikkan sendiri), logout, dan
-bersih-bersih data uji.
-
----
-
-## 10. Bila ada masalah
-
-| Masalah | Solusi |
-|---|---|
-| `python` tidak dikenali | Pakai `py server.py`, atau pasang Python dari python.org (centang "Add to PATH") |
-| Port 8080 dipakai program lain | `python server.py --port 9000` |
-| Kamera tidak muncul di HP | Buka lewat `http://127.0.0.1` (di komputer) atau pakai tombol "Buka Kamera Perangkat" |
-| Login gagal terus | Lihat `AKUN-AWAL.txt`; bila perlu admin reset password dari *Pengaturan Akun* |
-| Data ingin dimulai dari nol | `python server.py --reset-db` (database & data contoh dibuat ulang) |
-| Foto lama ingin diarsipkan | Salin `storage/foto/` + `data/app.db` |
-
----
-
-## 11. Struktur file
-
-```
-absensi-server/
-  server.py         HTTP server, routing, autentikasi, otorisasi, seluruh API
-  db.py             skema SQLite, seed data contoh, query, aturan bisnis
-  report.py         penulis .xlsx dan .pdf (stdlib, tanpa dependensi)
-  test_api.py       uji end-to-end API (55 pemeriksaan)
-  jalankan.bat      launcher: jalankan server + buka browser
-  static/
-    index.html      halaman login
-    admin.html      kerangka panel admin      + admin.js
-    karyawan.html   kerangka panel karyawan   + karyawan.js
-    ui.js           modul bersama: API, modal, toast, kamera selfie, format
-    app.css         desain sistem (navy / abu / biru)
-  data/app.db       database
-  storage/foto/     penyimpanan foto bukti absensi
-  AKUN-AWAL.txt     akun awal (dibuat otomatis saat pertama jalan)
-```
+**Uji otomatis:** jalankan server dulu, lalu `python test_api.py` (uji login, CSRF,
+pembatasan role, foto wajib/palsu ditolak, jam server, absen ganda, checklist, laporan,
+export Excel/PDF, dan pemisahan halaman admin/karyawan).

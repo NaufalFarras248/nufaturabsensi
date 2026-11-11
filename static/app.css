@@ -82,6 +82,40 @@ button,input,select,textarea{font-family:inherit;font-size:14px}
 .hamburger{display:none;background:none;border:1px solid var(--gray-200);border-radius:9px;padding:7px;cursor:pointer;color:var(--brand-800)}
 .scrim{display:none;position:fixed;inset:0;background:rgba(3,18,26,.55);z-index:39}
 
+/* ---------------- HP / tablet kecil: sidebar jadi LACI (halaman admin) ----------------
+   Dulu: sidebar 248px selalu tampil + .main margin-left 248px, dan .hamburger display:none
+   tanpa media query -> di HP konten cuma kebagian ~140px (berantakan).
+   Sekarang (<=900px): sidebar digeser keluar, konten penuh, tombol hamburger muncul.
+   JS (admin.js) sudah menyetel style.transform + #scrim lewat inline style, jadi cukup CSS. */
+@media(max-width:900px){
+  .sidebar{width:min(282px,86vw);transform:translateX(-105%);transition:transform .22s ease;box-shadow:var(--shadow-lg)}
+  .main{margin-left:0}
+  .hamburger{display:inline-flex;flex:0 0 auto}
+  .topbar{padding:10px 12px;gap:10px}
+  .topbar h2{font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar .sub{font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .topbar>*{min-width:0}
+  .topbar .right{gap:9px;min-width:0}
+  .content{padding:12px;max-width:none}
+  .card>.head{padding:12px 13px}
+  .card>.body{padding:13px}
+  .modal.wide{width:100%}
+}
+@media(max-width:560px){
+  .topbar .sub{display:none}
+  .who>div{display:none}          /* di HP cukup avatar + tombol keluar */
+  .clock small{display:none}
+  .content{padding:10px}
+  .grid{gap:11px}
+  .card{margin-bottom:14px;border-radius:10px}
+  .card>.head{padding:11px 12px;gap:8px}
+  .stat{padding:13px}
+  .stat .val{font-size:22px}
+  .btn{padding:8px 12px}
+  th,td{padding:9px 10px}
+  #toasts{left:10px;right:10px;bottom:10px;max-width:none}
+}
+
 /* ---------------- Kartu & grid ---------------- */
 .card{background:var(--white);border:1px solid var(--gray-200);border-radius:var(--radius);box-shadow:var(--shadow);margin-bottom:18px;overflow:hidden}
 .card>.head{padding:14px 16px;border-bottom:1px solid var(--gray-200);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
