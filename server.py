@@ -1120,7 +1120,8 @@ def api_xlsx(h, m, body, s):
         nama_sheet = 'Laporan Kehadiran'
     sheets = [{'nama': nama_sheet, 'kolom': [{'lebar': w} for w in lebar], 'baris': [kolom] + baris}]
     ring = qs.get('from', 'awal') + '_' + qs.get('to', db.today())
-    path = os.path.join(BASE, 'data', 'export_%s_%s.xlsx' % (jenis, ring.replace('/', '-')))
+    path = os.path.join(db.DATA_DIR, 'export_%s_%s.xlsx' % (jenis, ring.replace('/', '-')))
+    os.makedirs(db.DATA_DIR, exist_ok=True)
     report.write_xlsx(path, sheets)
     with open(path, 'rb') as f:
         isi = f.read()
@@ -1153,7 +1154,8 @@ def api_pdf(h, m, body, s):
                   d['status_tampil'], d['bukti_foto'], '%d%%' % d['task_persen']] for d in data]
         lebar = [58, 110, 110, 78, 42, 42, 48, 40, 92, 62, 40]
         judul = 'LAPORAN KEHADIRAN'
-    path = os.path.join(BASE, 'data', 'laporan_%s_%s.pdf' % (jenis, db.today()))
+    path = os.path.join(db.DATA_DIR, 'laporan_%s_%s.pdf' % (jenis, db.today()))
+    os.makedirs(db.DATA_DIR, exist_ok=True)
     report.write_pdf(path, judul, kolom, baris, lebar, landscape=True,
                      subjudul='%s  |  %s' % (set_['nama_instansi'], periode))
     with open(path, 'rb') as f:
